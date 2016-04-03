@@ -1,11 +1,12 @@
 //worldClock.c
-//Version 0.1
+//Version 0.2
 //Driving a set of LED displays with the current time in different areas of the world.
 #include <wiringPi.h>
+#include <stdio.h>
 #include <unistd.h>
 
 //Lookup table to convert ascii to the appropriate 7-segment output (for use on the time displays)
-const char asciiTo7Seg[128] = 
+const char asciiTo7Seg[128] =
 {
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -29,14 +30,14 @@ const char asciiTo7Seg[128] =
 };
 
 //Lookup table to convert ascii to the appropriate 16-segment output (for use on the time zone displays)
-const uint16_t asciiTo16Seg[128] = 
+const unsigned short asciiTo16Seg[128] =
 {
 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xFFFF,
 //32 (mostly numbers)
-0x0000, 0x0110, 0x0044, 0x00F2, 0x9797, 0xB5B5, 0x2F2B, 0x0008, 
+0x0000, 0x0110, 0x0044, 0x00F2, 0x9797, 0xB5B5, 0x2F2B, 0x0008,
 0x0820, 0x2008, 0xB8B8, 0x9090, 0x2000, 0x8080, 0x0200, 0x2020,
 0x4747, 0x0440, 0xC3C3, 0x87C3, 0x84C4, 0x8787, 0xC787, 0x2023,
 0xC7C7, 0x84C7, 0x0201, 0x2001, 0x0820, 0x8083, 0x2008, 0x10C7,
@@ -53,42 +54,46 @@ const uint16_t asciiTo16Seg[128] =
 };
 
 //Prototypes
-char* constructTime(char, char);
-void shiftRegisterWrite(int, int, int, uint16_t*, int)
+void constructTime(int, int, char*);
+void shiftRegisterWrite(int, int, int, unsigned short*, int);
 
 int main()
 {
   wiringPiSetup();
-  
+
   int clkPin = 0; //arbitrary
   int datPin = 1; //arbitrary
   int latPin = 2; //arbitrary
-  
+
   pinMode(clkPin, OUTPUT);
   pinMode(datPin, OUTPUT);
   pinMode(latPin, OUTPUT);
-  
+
   //Write data to time zone displays (doesn't need to be multiplexed)
   //Get time for various time zones using web-based API
   //Convert time to a format that can be displayed
-  
+
   while(1)
   {
     //Multiplex time LED display at a frequency of 120 Hz
     //Change the value being displayed by comparing against internal clock time
     //Check the time (once every few hours or so)
-    
+    printf("it works but doesnt do anything");
+ 
   }
   return 0;
 }
 
-void shiftRegisterWrite(int clkPin, int datPin, int latPin, uint16_t* data, int dataLength)
+void shiftRegisterWrite(int clkPin, int datPin, int latPin, unsigned short* data, int dataLength)
 {
-    for(int i = 0; i < dataLength; i++) //cycle through the number of bytes of data
+    int i = 0;
+    int j = 0;
+    for(i = 0; i < dataLength; i++) //cycle through the number of bytes of data
     {
-        for(int j = 0; j < 16; j++) //cycle through the number of bits
-        int dataValue = data[i] & (1 << j);
-        digitalWrite(dataPin, dataValue);
+        int dataValue = 0;
+        for(j = 0; j < 16; j++) //cycle through the number of bits
+        dataValue = data[i] & (1 << j);
+        digitalWrite(datPin, dataValue);
         usleep(10);
         digitalWrite(clkPin, 1);
         usleep(10);
@@ -100,10 +105,9 @@ void shiftRegisterWrite(int clkPin, int datPin, int latPin, uint16_t* data, int 
     digitalWrite(latPin, 0);
 }
 
-char* constructTime(int hours, int minutes)
+void constructTime(int hours, int minutes, char* writeThis)
 {
     char writeIndexes[] = {0x00, 0x00, 0x00, 0x00};
-    char writeThis[]    = {0x00, 0x00, 0x00, 0x00};
     if(hours < 10)
     {
         writeIndexes[0] = '\0';
@@ -124,7 +128,7 @@ char* constructTime(int hours, int minutes)
         writeIndexes[0] = '0';
         writeIndexes[1] = '0';
     }
-    
+
     if(minutes < 10)
     {
         writeIndexes[2] = '0';
@@ -160,11 +164,9 @@ char* constructTime(int hours, int minutes)
         writeIndexes[2] = '0';
         writeIndexes[3] = '0';
     }
-    
-    writeThis[0] = asciiTo7Seg[writeIndexes[0]];
-    writeThis[1] = asciiTo7Seg[writeIndexes[1]];
-    writeThis[2] = asciiTo7Seg[writeIndexes[2]];
-    writeThis[3] = asciiTo7Seg[writeIndexes[3]];
-    
-    return writeThis;
+
+    writeThis[0] = asciiTo7Seg[(int)writeIndexes[0]];
+    writeThis[1] = asciiTo7Seg[(int)writeIndexes[1]];
+    writeThis[2] = asciiTo7Seg[(int)writeIndexes[2]];
+    writeThis[3] = asciiTo7Seg[(int)writeIndexes[3]];
 }
