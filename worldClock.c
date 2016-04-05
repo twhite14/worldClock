@@ -78,7 +78,7 @@ int main()
     //Multiplex time LED display at a frequency of 120 Hz
     //Change the value being displayed by comparing against internal clock time
     //Check the time (once every few hours or so)
-    printf("it works but doesnt do anything");
+    printf("It works but doesnt do anything.\n");
  
   }
   return 0;
@@ -92,13 +92,15 @@ void shiftRegisterWrite(int clkPin, int datPin, int latPin, unsigned short* data
     {
         int dataValue = 0;
         for(j = 0; j < 16; j++) //cycle through the number of bits
-        dataValue = data[i] & (1 << j);
-        digitalWrite(datPin, dataValue);
-        usleep(10);
-        digitalWrite(clkPin, 1);
-        usleep(10);
-        digitalWrite(clkPin, 0);
-        usleep(10);
+        {
+            dataValue = data[i] & (1 << j);
+            digitalWrite(datPin, dataValue);
+            usleep(10);
+            digitalWrite(clkPin, 1);
+            usleep(10);
+            digitalWrite(clkPin, 0);
+            usleep(10);
+        }
     }
     digitalWrite(latPin, 1);
     usleep(10);
