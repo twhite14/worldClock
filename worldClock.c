@@ -55,44 +55,50 @@ const unsigned short asciiTo16Seg[128] =
 
 //Prototypes
 void constructTime(int, int, char*);
-void shiftRegisterWrite(int, int, int, unsigned short*, int);
+void shiftRegisterWrite(int, int, int, unsigned short, int);
 
 int main()
 {
   wiringPiSetup();
 
-  int clkPin = 0; //arbitrary
-  int datPin = 1; //arbitrary
-  int latPin = 2; //arbitrary
+  int clkPin = 2; //arbitrary
+  int datPin = 0; //arbitrary
+  int latPin = 3; //arbitrary
 
   pinMode(clkPin, OUTPUT);
   pinMode(datPin, OUTPUT);
   pinMode(latPin, OUTPUT);
 
+  char testString[] = "       KEEP ON HACKIN ON";
+
   //Write data to time zone displays (doesn't need to be multiplexed)
   //Get time for various time zones using web-based API
   //Convert time to a format that can be displayed
 
-  while(1)
-  {
+  //while(1)
+  //{
+    int k = 0;
+    for(k = 0; testString[k] != '\0'; k++)
+    {
+        shiftRegisterWrite(clkPin, datPin, latPin, asciiTo16Seg[(int)testString[k]], 1);
+        printf("%c", testString[k]);
+    }
     //Multiplex time LED display at a frequency of 120 Hz
     //Change the value being displayed by comparing against internal clock time
     //Check the time (once every few hours or so)
-    printf("it works but doesnt do anything");
+    //printf("it works but doesnt do anything");
  
-  }
+  //}
   return 0;
 }
 
-void shiftRegisterWrite(int clkPin, int datPin, int latPin, unsigned short* data, int dataLength)
+void shiftRegisterWrite(int clkPin, int datPin, int latPin, unsigned short data, int dataLength)
 {
     int i = 0;
-    int j = 0;
-    for(i = 0; i < dataLength; i++) //cycle through the number of bytes of data
+    int dataValue = 0;
+    for(i = 0; i < 16; i++)
     {
-        int dataValue = 0;
-        for(j = 0; j < 16; j++) //cycle through the number of bits
-        dataValue = data[i] & (1 << j);
+        dataValue = data & (1 << (15 - i)) ;
         digitalWrite(datPin, dataValue);
         usleep(10);
         digitalWrite(clkPin, 1);
