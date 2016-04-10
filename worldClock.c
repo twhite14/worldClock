@@ -3,7 +3,9 @@
 //Driving a set of LED displays with the current time in different areas of the world.
 #include <wiringPi.h>
 #include <stdio.h>
+#include <time.h>
 #include <unistd.h>
+#include <string.h>
 
 //Lookup table to convert ascii to the appropriate 7-segment output (for use on the time displays)
 const char asciiTo7Seg[128] =
@@ -32,7 +34,7 @@ const char asciiTo7Seg[128] =
 //Lookup table to convert ascii to the appropriate 16-segment output (for use on the time zone displays)
 const unsigned short asciiTo16Seg[128] =
 {
-0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+0x0000, 0x0303, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xFFFF,
@@ -55,44 +57,79 @@ const unsigned short asciiTo16Seg[128] =
 
 //Prototypes
 void constructTime(int, int, char*);
-void shiftRegisterWrite(int, int, int, unsigned short, int);
+void shiftRegisterWrite(int, int, unsigned short);
+void clear(int, int);
 
 int main()
 {
-  wiringPiSetup();
+    wiringPiSetup();
 
-  int clkPin = 2; //arbitrary
-  int datPin = 0; //arbitrary
-  int latPin = 3; //arbitrary
+    int clkPin = 2;
+    int datPin = 0;
+    int latPin = 3;
 
-  pinMode(clkPin, OUTPUT);
-  pinMode(datPin, OUTPUT);
-  pinMode(latPin, OUTPUT);
+    pinMode(clkPin, OUTPUT);
+    pinMode(datPin, OUTPUT);
+    pinMode(latPin, OUTPUT);
 
-  char testString[] = "       KEEP ON HACKIN ON";
+    char outputString[24];
+    char tempWeather[19];
 
-  //Write data to time zone displays (doesn't need to be multiplexed)
-  //Get time for various time zones using web-based API
-  //Convert time to a format that can be displayed
+    FILE *theWeather;
+    theWeather = fopen("transfer.txt", "r");
+    if(theWeather == NULL)
+        return -1;
+    fread(tempWeather, 1, 19, theWeather);
+    strncpy(outputString+5, tempWeather, 19);
 
-  //while(1)
-  //{
-    int k = 0;
-    for(k = 0; testString[k] != '\0'; k++)
+    fclose(theWeather);
+
+    time_t now;
+    now = time(NULL);
+
+    strncpy(outputString, ctime(&now)+11, 5);
+
+    //Write data to time zone displays (doesn't need to be multiplexed)
+    //Get time for various time zones using web-based API
+    //Convert time to a format that can be displayed
+    //strncpy(outputString, "WORK DAMN YOU (PRETTY PLS)      ", 24);
+    printf(outputString);
+    
+    clear(clkPin, datPin);
+
+    char intro[] = "<\1SSPL--";
+
+    int i = 0;
+    for(i = 0; i < 8; i++)
     {
-        shiftRegisterWrite(clkPin, datPin, latPin, asciiTo16Seg[(int)testString[k]], 1);
-        printf("%c", testString[k]);
+        shiftRegisterWrite(clkPin, datPin, asciiTo16Seg[(int)intro[i]]);
+        digitalWrite(latPin, 1);
+        usleep(10);
+        digitalWrite(latPin, 0);
+        usleep(200000);
     }
+
+    for(i = 0; i < 24; i++)
+    {
+        shiftRegisterWrite(clkPin, datPin, asciiTo16Seg[(int)outputString[i]]);
+        //printf("%c", testString[k]);
+        digitalWrite(latPin, 1);
+        usleep(10);
+        digitalWrite(latPin, 0);
+        usleep(200000);
+
+    }
+
+
     //Multiplex time LED display at a frequency of 120 Hz
     //Change the value being displayed by comparing against internal clock time
     //Check the time (once every few hours or so)
     //printf("it works but doesnt do anything");
- 
-  //}
-  return 0;
+
+    return 0;
 }
 
-void shiftRegisterWrite(int clkPin, int datPin, int latPin, unsigned short data, int dataLength)
+void shiftRegisterWrite(int clkPin, int datPin, unsigned short data)
 {
     int i = 0;
     int dataValue = 0;
@@ -106,9 +143,6 @@ void shiftRegisterWrite(int clkPin, int datPin, int latPin, unsigned short data,
         digitalWrite(clkPin, 0);
         usleep(10);
     }
-    digitalWrite(latPin, 1);
-    usleep(10);
-    digitalWrite(latPin, 0);
 }
 
 void constructTime(int hours, int minutes, char* writeThis)
@@ -175,4 +209,12 @@ void constructTime(int hours, int minutes, char* writeThis)
     writeThis[1] = asciiTo7Seg[(int)writeIndexes[1]];
     writeThis[2] = asciiTo7Seg[(int)writeIndexes[2]];
     writeThis[3] = asciiTo7Seg[(int)writeIndexes[3]];
+}
+void clear(int clkPin, int datPin)
+{
+    int i = 0;
+    for(i = 0; i < 24; i++)
+    {
+        shiftRegisterWrite(clkPin, datPin, 0x00);
+    }
 }
