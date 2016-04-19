@@ -56,9 +56,8 @@ const unsigned short asciiTo16Seg[128] =
 };
 
 //Prototypes
-void constructTime(int, int, char*);
 void shiftRegisterWrite(int, int, unsigned short);
-void clear(int, int);
+void clear16Seg(int, int, int);
 
 int main()
 {
@@ -75,6 +74,7 @@ int main()
     char outputString[24];
     char tempWeather[19];
 
+    //Pull weather information from a file containing the current conditons
     FILE *theWeather;
     theWeather = fopen("transfer.txt", "r");
     if(theWeather == NULL)
@@ -84,20 +84,18 @@ int main()
 
     fclose(theWeather);
 
+    //Get current time
     time_t now;
     now = time(NULL);
 
+    //Take only the time
     strncpy(outputString, ctime(&now)+11, 5);
 
-    //Write data to time zone displays (doesn't need to be multiplexed)
-    //Get time for various time zones using web-based API
-    //Convert time to a format that can be displayed
-    //strncpy(outputString, "WORK DAMN YOU (PRETTY PLS)      ", 24);
-    printf(outputString);
+    //printf(outputString);
     
-    clear(clkPin, datPin);
+    clear16Seg(clkPin, datPin, latPin);
 
-    char intro[] = "<\1SSPL--";
+    char intro[] = "Hello! ";
 
     int i = 0;
     for(i = 0; i < 8; i++)
@@ -145,76 +143,15 @@ void shiftRegisterWrite(int clkPin, int datPin, unsigned short data)
     }
 }
 
-void constructTime(int hours, int minutes, char* writeThis)
-{
-    char writeIndexes[] = {0x00, 0x00, 0x00, 0x00};
-    if(hours < 10)
-    {
-        writeIndexes[0] = '\0';
-        writeIndexes[1] = hours + '0';
-    }
-    else if(hours < 20)
-    {
-        writeIndexes[0] = '1';
-        writeIndexes[1] = (hours - 10) + '0';
-    }
-    else if(hours < 24)
-    {
-        writeIndexes[0] = '1';
-        writeIndexes[1] = (hours - 20) + '0';
-    }
-    else
-    {
-        writeIndexes[0] = '0';
-        writeIndexes[1] = '0';
-    }
-
-    if(minutes < 10)
-    {
-        writeIndexes[2] = '0';
-        writeIndexes[3] = minutes + '0';
-    }
-    else if(minutes < 20)
-    {
-        writeIndexes[2] = '1';
-        writeIndexes[3] = (minutes - 10) + '0';
-    }
-    else if(minutes < 30)
-    {
-        writeIndexes[2] = '2';
-        writeIndexes[3] = (minutes - 20) + '0';
-    }
-    else if(minutes < 40)
-    {
-        writeIndexes[2] = '3';
-        writeIndexes[3] = (minutes - 30) + '0';
-    }
-    else if(minutes < 50)
-    {
-        writeIndexes[2] = '4';
-        writeIndexes[3] = (minutes - 40) + '0';
-    }
-    else if(minutes < 60)
-    {
-        writeIndexes[2] = '5';
-        writeIndexes[3] = (minutes - 50) + '0';
-    }
-    else
-    {
-        writeIndexes[2] = '0';
-        writeIndexes[3] = '0';
-    }
-
-    writeThis[0] = asciiTo7Seg[(int)writeIndexes[0]];
-    writeThis[1] = asciiTo7Seg[(int)writeIndexes[1]];
-    writeThis[2] = asciiTo7Seg[(int)writeIndexes[2]];
-    writeThis[3] = asciiTo7Seg[(int)writeIndexes[3]];
-}
-void clear(int clkPin, int datPin)
+void clear16Seg(int clkPin, int datPin, int latPin)
 {
     int i = 0;
     for(i = 0; i < 24; i++)
     {
-        shiftRegisterWrite(clkPin, datPin, 0x00);
+        shiftRegisterWrite(clkPin, datPin, 0x0000);
     }
+    digitalWrite(latPin, 1);
+    //usleep(1);
+    digitalWrite(latPin, 0);
+    //usleep(1);
 }

@@ -1,4 +1,6 @@
 worldClock
+timeDisplay
+clear
 apiKeys.py
 apiKeys.pyc
 transfer.txt
